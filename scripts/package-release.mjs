@@ -105,9 +105,70 @@ if (!nativeBinaries.length)
   throw new Error("The distribution has no universal native module.");
 const sourceZip = path.join(release, `${releaseName}-source.zip`);
 const compiledZip = path.join(release, `${releaseName}-compiled.zip`);
+// Public Raycast currently rejects .rayext imports. Ship JavaScript entry points
+// plus the prebuilt Swift module so the normal local build needs no Swift tools.
+const install = path.join(release, "local-install", releaseName);
+await mkdir(path.join(install, "src"), { recursive: true });
+await cp(path.join(compiled, "assets"), path.join(install, "assets"), {
+  recursive: true,
+});
+for (const command of manifest.commands) {
+  await cp(
+    path.join(compiled, `${command.name}.js`),
+    path.join(install, "src", `${command.name}.js`),
+  );
+}
+await writeFile(
+  path.join(install, "package.json"),
+  `${JSON.stringify(
+    {
+      ...manifest,
+      scripts: { "install:local": "ray build", dev: "ray develop" },
+    },
+    null,
+    2,
+  )}\n`,
+);
+for (const name of [
+  "package-lock.json",
+  "LICENSE",
+  "UPSTREAM.md",
+  "help.md",
+  "README.md",
+  "TODO.md",
+  "CHANGELOG.md",
+]) {
+  await cp(path.join(root, name), path.join(install, name));
+}
+await writeFile(
+  path.join(install, "install.sh"),
+  `#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "Voicenotes Controls requires macOS."
+  exit 1
+fi
+if ! command -v node >/dev/null || ! command -v npm >/dev/null; then
+  echo "Install Node.js 22.22.2 or newer from https://nodejs.org/, then rerun this script."
+  exit 1
+fi
+node -e 'const [m,n,p]=process.versions.node.split(".").map(Number); if (!(m>22||(m===22&&(n>22||(n===22&&p>=2))))) { console.error("Node.js 22.22.2 or newer is required."); process.exit(1); }'
+if [[ ! -d /Applications/Raycast.app && ! -d "$HOME/Applications/Raycast.app" ]]; then
+  echo "Install Raycast in Applications before continuing."
+  exit 1
+fi
+npm ci --omit=dev
+npm run install:local
+echo "Installed Voicenotes Controls. Open Raycast and run Recording Setup and Status."
+`,
+  { mode: 0o755 },
+);
+const installZip = path.join(release, `${releaseName}-macos.zip`);
 for (const [folder, zip] of [
   [source, sourceZip],
   [compiled, compiledZip],
+  [install, installZip],
 ]) {
   execFileSync("/usr/bin/ditto", ["-c", "-k", "--keepParent", folder, zip]);
 }
@@ -133,7 +194,19 @@ const metadata = {
   validatedVoicenotesVersions: ["2.4.2", "2.4.3"],
   raycastApi: manifest.dependencies["@raycast/api"],
   nativeBinaries,
-  status: "release-candidate; not submitted to the Raycast Store",
+  installation: {
+    archive: path.basename(installZip),
+    command: "bash install.sh",
+    requires: [
+      "macOS 14+",
+      "Raycast",
+      "Node.js 22.22.2+ and npm",
+      "Voicenotes 2.4.2 or 2.4.3",
+    ],
+    requiresXcode: false,
+    rayext: "Public Raycast 2.11.1 rejects bundles: internal builds only",
+  },
+  status: "GitHub release; not submitted to the Raycast Store",
 };
 await writeFile(
   path.join(release, "RELEASE.json"),
@@ -143,6 +216,7 @@ const sums = [];
 for (const filename of [
   sourceZip,
   compiledZip,
+  installZip,
   path.join(release, "RELEASE.json"),
 ]) {
   sums.push(
@@ -153,5 +227,5 @@ for (const filename of [
 }
 await writeFile(path.join(release, "SHA256SUMS"), `${sums.join("\n")}\n`);
 console.log(
-  `Packaged ${releaseName}: source ZIP, compiled ZIP, RELEASE.json, SHA256SUMS`,
+  `Packaged ${releaseName}: macOS installer ZIP, source ZIP, compiled ZIP, RELEASE.json, SHA256SUMS`,
 );

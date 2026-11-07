@@ -25,6 +25,12 @@ package-lock.json pin dependencies. The distribution build includes both native
 architectures; physical Intel and clean-account validation remain listed in TODO.md.
 
 Inspect the source and compiled ZIPs, SHA256SUMS, and RELEASE.json in `releases/`.
+The `-macos.zip` archive includes an installer, JavaScript entry points, and the
+prebuilt native module. Users run `bash install.sh` with Node/npm installed;
+Xcode is only needed when building native code from source. Public Raycast
+2.11.1 rejects `.rayext` imports as internal-build-only, so that format is not
+used for the downloadable installer.
+
 The source ZIP excludes node_modules, local build caches, credentials, old search
 code, and Git metadata. The compiled ZIP contains the Raycast distribution build;
 it is not a Store installation link or an npm package to publish.
