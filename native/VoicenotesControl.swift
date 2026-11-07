@@ -226,11 +226,17 @@ func execute(_ command: Command) throws -> Result {
             }
             guard let app=runningApp() else { throw Failure(message:"Voicenotes closed before cancellation; no keys were sent.") }
             app.activate(options:[])
+            let appElement = AXUIElementCreateApplication(app.processIdentifier)
+            func appIsFrontmost() -> Bool {
+                // NSWorkspace's cached frontmostApplication can stay stale in a
+                // short-lived CLI. AXFrontmost is read from the target process.
+                (read(appElement,"AXFrontmost") as? NSNumber)?.boolValue == true
+            }
             let focusDeadline = Date().addingTimeInterval(1)
-            while NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processIdentifier && Date() < focusDeadline {
+            while !appIsFrontmost() && Date() < focusDeadline {
                 Thread.sleep(forTimeInterval:0.05)
             }
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else {
+            guard appIsFrontmost() else {
                 throw Failure(message:"Could not focus Voicenotes for Cancel; no keys were sent.")
             }
             // Cancel-only global hotkey, read from settings above. It can never start capture.

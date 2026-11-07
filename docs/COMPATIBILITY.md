@@ -73,6 +73,14 @@ counted as successful tests merely because the URL was opened.
 - Raycast copies assets as 0644. The wrapper restores executable mode only on its
   own helper before launching it. This was tested under Raycast, not assumed from
   a developer-terminal permission grant.
+- The documented `scripts/install-local.sh` completed successfully, including
+  automatic selection of the installed Node 24 runtime and a clean `npm ci`.
+  The installed helper's SHA-256 matched the source build, and the installed
+  manifest contained five commands with credentials required only by Search.
+- Final Cancel focus validation uses fresh target-process `AXFrontmost`, not
+  `NSWorkspace.frontmostApplication`, which proved stale in the short-lived
+  helper. After this correction, a final disposable Start → Cancel test returned
+  `ok:true`, `dispatched:true`, `state:idle`, and `Recording cancelled in Voicenotes`.
 
 ## Boundaries and unexercised cases
 
