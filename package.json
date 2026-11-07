@@ -1,0 +1,107 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "voicenotes-local",
+  "title": "Voicenotes Local",
+  "description": "Control the official Voicenotes Mac recorder and search your notes.",
+  "icon": "command-icon.png",
+  "author": "parzival",
+  "categories": [
+    "Productivity",
+    "Applications"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "search-notes",
+      "title": "Search Notes",
+      "description": "Search through your Voicenotes recordings",
+      "mode": "view",
+      "preferences": [
+        {
+          "name": "token",
+          "type": "password",
+          "required": true,
+          "title": "Voicenotes API Token",
+          "description": "Your Voicenotes API Token from Settings > Integrations > Obsidian",
+          "placeholder": "Enter your token here"
+        }
+      ]
+    },
+    {
+      "name": "start-recording",
+      "title": "Start Recording",
+      "description": "Start Voicenotes capture, or leave an active recording running",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "record",
+        "vn"
+      ]
+    },
+    {
+      "name": "stop-recording",
+      "title": "Stop and Save Recording",
+      "description": "Stop capture and let Voicenotes save and process it",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "record",
+        "vn"
+      ]
+    },
+    {
+      "name": "cancel-recording",
+      "title": "Cancel Recording",
+      "description": "Cancel only the current Voicenotes capture",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "record",
+        "vn"
+      ]
+    },
+    {
+      "name": "recording-status",
+      "title": "Recording Setup and Status",
+      "description": "Check app compatibility, recording state and Accessibility access",
+      "mode": "view",
+      "keywords": [
+        "voicenotes",
+        "record",
+        "vn"
+      ]
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "1.79.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.1.1",
+    "@types/node": "20.8.10",
+    "@types/react": "18.2.79",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "react": "18.2.0",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "build": "ray build -e dist -o dist",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\\"prepublishOnly\\\" script and rerun \\\"npm publish\\\" again.\\nIf you wanted to publish it to the Raycast Store instead, use \\\"npm run publish\\\" instead.\\n\\n\" && exit 1",
+    "publish": "npx @raycast/api@latest publish",
+    "build:native": "bash scripts/build-native.sh",
+    "prebuild": "npm run build:native",
+    "predev": "npm run build:native",
+    "test": "npm run build:native && assets/voicenotes-control --self-test",
+    "typecheck": "tsc --noEmit",
+    "install:local": "npm run build:native && ray build"
+  },
+  "platforms": [
+    "macOS"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  }
+}
