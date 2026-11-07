@@ -12,11 +12,11 @@ verified Raycast account **alialfredji**, with Parzival retained in attribution.
 From the project directory, with Node 22.22.2+ and Xcode's Swift 6 toolchain:
 
 ```sh
-rtk npm ci
-rtk npm test
-rtk npm run lint
-rtk npm run build
-rtk npm run package
+npm ci
+npm test
+npm run lint
+npm run build
+npm run package
 ```
 
 The native controller is built through the official Raycast Swift package plugins,
@@ -32,11 +32,11 @@ it is not a Store installation link or an npm package to publish.
 ## Submit to Raycast
 
 ```sh
-rtk bash scripts/submit-store.sh
+bash scripts/submit-store.sh
 ```
 
 The script selects a supported Node runtime, validates and builds, then runs
-`rtk npm run publish`. Raycast's CLI asks for GitHub authentication when needed and opens a pull request
+`npm run publish`. Raycast's CLI asks for GitHub authentication when needed and opens a pull request
 in `raycast/extensions`. Use docs/STORE-PR.md as the PR description. Review the
 public diff, title, screenshots, and license before completing submission. This
 project has not automatically sent a public PR or published anything.

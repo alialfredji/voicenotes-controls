@@ -3,6 +3,10 @@
 An unofficial Raycast extension for recording with the official Voicenotes Mac
 app. Voicenotes captures audio, transcribes, and stores your notes.
 
+This is an early release available to install from source. It is not yet listed
+in the Raycast Store. Recording controls currently support Voicenotes 2.4.2 and
+2.4.3 only; other versions are blocked until validated.
+
 ## Commands
 
 | Command                    | Behavior                                                                                                         |
@@ -57,22 +61,25 @@ There is no token setup screen in this release.
 
 ## Install from source
 
+Install [Raycast](https://www.raycast.com/) and the official
+[Voicenotes Mac app](https://voicenotes.com/) first, and sign into Voicenotes.
 Store publication requires Raycast review. For local development, use Node
 **22.22.2+**, npm, and Xcode with the Swift 6 toolchain. This build was tested with
 Node 24.19.0 and Xcode 27.2. End users installing an accepted Store release do not
 need these development tools.
 
 ```sh
+git clone https://github.com/alialfredji/voicenotes-controls.git
+cd voicenotes-controls
 npm ci
 npm run dev
 ```
 
 You can stop the development process afterward; the local installation remains.
-On Ali's existing Mac, the documented convenience installer also selects the
-installed Node 24 runtime when needed:
+Alternatively, run the local installer from the cloned project directory:
 
 ```sh
-rtk bash scripts/install-local.sh
+bash scripts/install-local.sh
 ```
 
 ## Build, package, and submit
@@ -104,6 +111,15 @@ Disable/uninstall Voicenotes Controls in Raycast Settings → Extensions. Develo
 files, if retained, are under `~/.config/raycast/extensions/voicenotes-local`.
 The optional lock is under `~/Library/Application Support/Voicenotes Raycast Local`.
 Removing the extension does not remove Voicenotes recordings.
+
+## Contributing and support
+
+Report bugs or request support in [GitHub Issues](https://github.com/alialfredji/voicenotes-controls/issues).
+Include your macOS, Raycast, and Voicenotes versions, the command you ran, and
+what happened. Remove personal note content and account details from reports.
+Pull requests are welcome; run `npm test`, `npm run typecheck`, and `npm run lint`
+before submitting changes. Compatibility evidence and remaining checks are in
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and [TODO.md](TODO.md).
 
 ## Attribution
 
