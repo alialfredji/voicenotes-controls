@@ -1,8 +1,4 @@
-import { environment } from "@raycast/api";
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
-import { chmod } from "node:fs/promises";
+import { control } from "swift:../../native";
 
 export type RecordingCommand = "start" | "stop" | "cancel";
 export interface RecordingResult {
@@ -23,12 +19,24 @@ export interface RecordingResult {
 export async function runLocal(
   command: RecordingCommand | "status" | "request-accessibility",
 ) {
-  const helper = path.join(environment.assetsPath, "voicenotes-control");
-  // Raycast copies assets with mode 0644. Restore execution on our own helper.
-  await chmod(helper, 0o700);
-  const { stdout } = await promisify(execFile)(helper, [command], {
-    timeout: 20000,
-    maxBuffer: 64 * 1024,
-  });
-  return JSON.parse(stdout) as RecordingResult;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const response = await Promise.race([
+      control(command),
+      new Promise<string>((_, reject) => {
+        timeout = setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Voicenotes did not respond in time. Check the app before retrying; no second action was sent.",
+              ),
+            ),
+          45000,
+        );
+      }),
+    ]);
+    return JSON.parse(response) as RecordingResult;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }

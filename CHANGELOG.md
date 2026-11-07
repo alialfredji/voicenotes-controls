@@ -1,4 +1,13 @@
-# Voicenotes Changelog
+# Voicenotes Controls Changelog
+
+## [Recording Controls] - {PR_MERGE_DATE}
+
+- Start recordings, opening Voicenotes and waiting for controls when needed.
+- Stop capture with the explicit Stop action, including collapsed/paused panels.
+- Cancel active recordings while preserving native discard confirmations.
+- Add setup/status diagnostics and guarded, serialized command handling.
+- Build the reviewed native controller using Raycast's Swift package pipeline.
+- Defer native text search/listing and Ask AI; archive legacy API search.
 
 ## [Initial Version] - 2026-02-16
 

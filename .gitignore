@@ -33,3 +33,10 @@ yarn-error.log
 
 # Rebuilt locally from native/VoicenotesControl.swift
 assets/voicenotes-control
+.native-tests/
+.build/
+.raycast-build-*/
+releases/
+
+# Local reference only; excluded from the recording release
+legacy/

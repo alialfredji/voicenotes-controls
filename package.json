@@ -1,32 +1,16 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "voicenotes-local",
-  "title": "Voicenotes Local",
-  "description": "Control the official Voicenotes Mac recorder and search your notes.",
+  "title": "Voicenotes Controls",
+  "description": "Start, finish, and cancel recordings in the Voicenotes Mac app.",
   "icon": "command-icon.png",
-  "author": "parzival",
+  "author": "alialfredji",
   "categories": [
     "Productivity",
     "Applications"
   ],
   "license": "MIT",
   "commands": [
-    {
-      "name": "search-notes",
-      "title": "Search Notes",
-      "description": "Search through your Voicenotes recordings",
-      "mode": "view",
-      "preferences": [
-        {
-          "name": "token",
-          "type": "password",
-          "required": true,
-          "title": "Voicenotes API Token",
-          "description": "Your Voicenotes API Token from Settings > Integrations > Obsidian",
-          "placeholder": "Enter your token here"
-        }
-      ]
-    },
     {
       "name": "start-recording",
       "title": "Start Recording",
@@ -73,15 +57,16 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "1.79.1"
+    "@raycast/api": "2.11.1"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.1.1",
-    "@types/node": "20.8.10",
-    "@types/react": "18.2.79",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
-    "react": "18.2.0",
+    "react": "^19.3.1",
+    "react-devtools": "^8.0.0",
     "typescript": "^5.4.5"
   },
   "scripts": {
@@ -92,16 +77,19 @@
     "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\\"prepublishOnly\\\" script and rerun \\\"npm publish\\\" again.\\nIf you wanted to publish it to the Raycast Store instead, use \\\"npm run publish\\\" instead.\\n\\n\" && exit 1",
     "publish": "npx @raycast/api@latest publish",
     "build:native": "bash scripts/build-native.sh",
-    "prebuild": "npm run build:native",
-    "predev": "npm run build:native",
-    "test": "npm run build:native && assets/voicenotes-control --self-test",
+    "test": "npm run build:native && .native-tests/voicenotes-control --self-test",
     "typecheck": "tsc --noEmit",
-    "install:local": "npm run build:native && ray build"
+    "install:local": "ray build",
+    "package": "node scripts/package-release.mjs",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
   },
   "platforms": [
     "macOS"
   ],
   "engines": {
-    "node": ">=22.14.0"
-  }
+    "node": ">=22.22.2"
+  },
+  "contributors": [
+    "parzival"
+  ]
 }

@@ -34,7 +34,7 @@ export default function Command() {
   }, [refresh]);
   const o = result?.observation;
   const markdown = o
-    ? `# Voicenotes Local\n\n**State:** ${o.state}\n\n**App version:** ${o.appVersion ?? "Not installed"} (validated: 2.4.2)\n\n**Accessibility:** ${o.accessibility ? "Granted" : "Required"}\n\n**Event posting:** ${o.eventPosting ? "Granted" : "Required for Cancel"}\n\n## Available controls\n\n${Object.entries(
+    ? `# Voicenotes Controls\n\n**State:** ${o.state}\n\n**App version:** ${o.appVersion ?? "Not installed"} (validated: 2.4.2 / 2.4.3)\n\n**Accessibility:** ${o.accessibility ? "Granted" : "Required"}\n\n**Event posting:** ${o.eventPosting ? "Granted" : "Required for Cancel"}\n\n## Available controls\n\n${Object.entries(
         o.controls,
       )
         .map(
@@ -43,8 +43,8 @@ export default function Command() {
         )
         .join(
           "\n",
-        )}\n\n## Observed evidence\n\n${o.evidence.map((line) => `- ${line}`).join("\n")}\n\nObserved: ${o.timestamp}\n\nStart and Stop use native buttons. Cancel requires Voicenotes’ Option+C shortcut. Saved-note persistence is owned by Voicenotes; Stop confirms capture ended. No API token is needed for recording commands.\n\nIf Start is unavailable while viewing a note, the command can return to Home automatically. Sign in to Voicenotes first.\n\nIf permission is required, grant Raycast and/or voicenotes-control access in System Settings → Privacy & Security → Accessibility, then refresh. This extension does not require Screen Recording permission.`
-    : `# Voicenotes Local\n\n${failure ?? (loading ? "Loading recording diagnostics…" : "No diagnostics returned. Refresh to retry.")}`;
+        )}\n\n## Observed evidence\n\n${o.evidence.map((line) => `- ${line}`).join("\n")}\n\nObserved: ${o.timestamp}\n\nStart and Stop use native buttons. Cancel requires Voicenotes’ Option+C shortcut. Saved-note persistence is owned by Voicenotes; Stop confirms capture ended. No API token is required. Native search and Ask AI are planned separately.\n\nIf Start is unavailable while viewing a note, the command can return to Home automatically. Sign in to Voicenotes first.\n\nIf permission is required, grant Raycast and/or VoicenotesNative access in System Settings → Privacy & Security → Accessibility, then refresh. This extension does not require Screen Recording permission.`
+    : `# Voicenotes Controls\n\n${failure ?? (loading ? "Loading recording diagnostics…" : "No diagnostics returned. Refresh to retry.")}`;
   return (
     <Detail
       isLoading={loading}

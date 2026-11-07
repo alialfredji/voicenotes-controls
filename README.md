@@ -1,106 +1,112 @@
-# Voicenotes Local for Raycast
+# Voicenotes Controls
 
-Installed locally on Ali's Mac and tested with **Voicenotes 2.4.2** and
-**Raycast 2.11.1.0**. Open Raycast and choose commands under **Voicenotes Local**.
-No terminal process needs to remain running.
+An unofficial Raycast extension for recording with the official Voicenotes Mac
+app. Voicenotes captures audio, transcribes, and stores your notes.
 
-## Try it
+## Commands
 
-1. Run **Recording Setup and Status**. Accessibility and event posting should say Granted.
-2. Run **Start Recording**, speak a short recognizable phrase, and continue using other apps.
-3. Run Start again: the existing recording should continue.
-4. Run **Stop and Save Recording**. Check the new entry in Voicenotes after processing.
-5. Start another disposable session and run **Cancel Recording**. If Voicenotes asks
-   “Are you sure you want to cancel this recording?”, select **Yes, cancel** or
-   **No, continue** yourself. The extension leaves this native decision intact.
-6. Stop or Cancel while idle: no new recording should start.
+| Command                    | Behavior                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Start Recording            | Opens Voicenotes if needed, waits for usable controls, and starts capture once. An existing recording continues. |
+| Stop and Save Recording    | Ends capture using the explicit Stop control. Voicenotes handles saving and transcription.                       |
+| Cancel Recording           | Cancels the active capture, preserving Voicenotes’ native discard confirmation.                                  |
+| Recording Setup and Status | Shows app version, observed recording state, available controls, and permission status.                          |
 
-Stop confirms capture ended; Voicenotes owns saving, transcription, and remote
-persistence. The command never claims that remote saving is complete.
+No API token, Obsidian integration, or separate audio recorder is needed.
 
-Optional aliases/hotkeys can be added in Raycast Settings → Extensions → Voicenotes
-Local. Suggested aliases: `vn start`, `vn stop`, `vn cancel`. No existing hotkeys
-were changed.
+## Use
 
-## Setup and compatibility
+1. Install and sign into the official Voicenotes app in `/Applications`.
+2. Run Recording Setup and Status and grant Accessibility access if requested.
+3. Run Start Recording. The same command opens the app, waits for readiness, then
+   starts; you do not have to run it a second time after the app opens.
+4. Speak a short phrase, then run Stop and Save Recording. Check the resulting
+   note in Voicenotes after processing.
+5. To discard a disposable session, run Cancel Recording and answer any native
+   Yes, cancel / No, continue prompt yourself.
 
-- Install and sign into the official `/Applications/Voicenotes.app`.
-- Grant Raycast/native-helper Accessibility permission if diagnostics requests it.
-  Use the diagnostic command's Request Accessibility Access or Open Accessibility
-  Settings actions, grant the indicated process access, and refresh.
-- Keep Voicenotes Settings → Shortcuts → Cancel Recording set to **Option+C**.
-  The helper checks the actual setting and refuses to send keys if it differs.
-- This adapter is deliberately limited to **2.4.2**. After an app update, diagnostics
-  refuses recording mutations until the new version's controls have been validated.
-- The extension itself does not need Screen Recording permission. Voicenotes owns
-  its microphone/system-audio permissions.
-- Commands handle the collapsed recording panel automatically. Start can return
-  from a note detail to Home. Ambiguous controls, dialogs, processing, missing
-  permissions, and timeouts produce an error instead of a blind toggle.
+Keep Cancel Recording configured as **Option+C** in Voicenotes Settings → Shortcuts.
+The extension verifies this setting and refuses unsupported bindings. Optional
+Raycast aliases: `vn start`, `vn stop`, `vn cancel`; assign hotkeys in Raycast Settings.
 
-## Reinstall or rebuild
+## Permissions and compatibility
 
-Source: `/Users/alialfredji/dev/vibe-code/raycast-voicenotes`.
-Installed files: `~/.config/raycast/extensions/voicenotes-local`.
+- **Validated app:** Voicenotes **2.4.2 / 2.4.3**, macOS only. Other app versions refuse
+  capture actions until their controls have been validated.
+- **Accessibility:** grant Raycast and/or VoicenotesNative the access requested by
+  macOS. Diagnostics reads actual access; refresh it after making changes.
+- This extension does not request Screen Recording access. Voicenotes retains its
+  own microphone and system-audio permissions.
+- Recording continues when Raycast closes. Start/Stop/Cancel read actual app state,
+  serialize capture actions, dispatch once, and verify the observed transition.
+- Collapsed recording panels and paused recordings are handled by explicit controls.
+- Stop confirms capture ended. It does not claim remote saving or transcription
+  has already finished. On an uncertain outcome, inspect Voicenotes before retrying.
 
-Requires Apple's command-line Swift tools, RTK, and Node **22.14+**. This Mac's
-Node 24 installation is selected automatically by the setup script if needed.
+## Search and Ask AI: planned follow-ups
+
+Native **text search and note listing**, and a separate **Ask AI** command, are
+planned in [TODO.md](TODO.md). The intended flow reuses the logged-in Mac app:
+open it, wait for the correct field, enter the supplied text, and invoke its native
+search or chat action. These are not part of this release.
+
+The inherited API-based Search Notes command reported “Failed to fetch recordings”
+and is excluded from this release. A local `legacy/` reference copy is retained in
+the development workspace and is excluded from the source and compiled packages.
+There is no token setup screen in this release.
+
+## Install from source
+
+Store publication requires Raycast review. For local development, use Node
+**22.22.2+**, npm, and Xcode with the Swift 6 toolchain. This build was tested with
+Node 24.19.0 and Xcode 27.2. End users installing an accepted Store release do not
+need these development tools.
 
 ```sh
-cd /Users/alialfredji/dev/vibe-code/raycast-voicenotes
+npm ci
+npm run dev
+```
+
+You can stop the development process afterward; the local installation remains.
+On Ali's existing Mac, the documented convenience installer also selects the
+installed Node 24 runtime when needed:
+
+```sh
 rtk bash scripts/install-local.sh
 ```
 
-This runs `npm ci`, compiles/ad-hoc signs the helper, and uses Raycast's local
-development build installation. It does not publish to the Store. The installed
-commands survived a Raycast restart with the development watcher stopped.
-For source changes use `rtk npm run dev` with Node 22.14+, or rerun the setup script.
-An app/OS restart needs no watcher; open Voicenotes/Raycast normally, or let Start
-launch Voicenotes. A complete machine reboot was not exercised.
-
-## Optional note search
-
-**Search Notes** retains Parzival's title search, tag filter, transcript preview,
-copying, and browser links. Only that command requests a Voicenotes API token from
-Settings → Integrations → Obsidian. Recording and diagnostics need no token.
-Existing credentials were not read or copied. Authenticated search was not tested
-without a user-entered token. Full transcript-text matching is not promised.
-The original Store extension remains available and unchanged if already installed;
-the fork's distinct **Voicenotes Local** title separates them.
-
-## Validation and implementation
-
-See [compatibility and test evidence](docs/COMPATIBILITY.md) and [upstream attribution](UPSTREAM.md).
-The extension and upstream code are MIT licensed; see [LICENSE](LICENSE).
-
-The helper uses a Start-only window button, the recording panel's explicit Stop
-button, and the verified Cancel-only hotkey. It reads fresh app state and serializes
-mutations with a kernel-owned file lock. Process death releases the lock; leftover
-lock-file contents are never recording truth. It sends each capture action once,
-checks the outcome, and never retries a toggle. The mutable menu toggle is not used.
+## Build, package, and submit
 
 ```sh
-rtk npm test
-rtk npm run typecheck
-rtk npm run lint
-rtk npm run build
+npm test
+npm run lint
+npm run build
+npm run package
 ```
 
-The last command produces a standalone compiled extension in `dist/`. Tests never
-need account credentials. Live test utilities under `tools/` can create disposable
-recordings; read them before running. `inspect-accessibility.swift` is read-only.
+Raycast's supported Swift package pipeline builds the reviewed native source for
+arm64 and x86_64. No opaque helper executable is committed under assets. The
+standalone test runner is built separately in the ignored `.native-tests` folder.
+
+The packaging command creates clean source and compiled archives, release metadata,
+and SHA-256 checksums under `releases/`. See [Store submission](docs/STORE-SUBMISSION.md)
+for the exact publication steps and [test evidence](docs/COMPATIBILITY.md) for scope
+and limitations. The archives are release candidates, not proof of Store acceptance.
 
 ## Recovery and removal
 
-On an uncertain result, inspect Voicenotes before retrying. No recording is owned
-by the extension process, so closing Raycast does not stop capture. If a native
-decision is pending, finish it in Voicenotes. After rebuilding, macOS may require
-renewed Accessibility access; diagnostics reports the actual permission state.
+If diagnostics reports a native decision pending, finish that decision in
+Voicenotes. If a command times out, check the app before retrying. Closing Raycast
+never owns or ends a capture. After an app update or permission change, refresh
+status and follow its message.
 
-To remove: disable/uninstall **Voicenotes Local** in Raycast Settings → Extensions.
-If its development files remain, remove only
-`~/.config/raycast/extensions/voicenotes-local` while Raycast is closed. Optional
-cleanup: remove this source directory and
-`~/Library/Application Support/Voicenotes Raycast Local` (contains only the lock).
-Voicenotes recordings and the original search extension are separate. Test-created
-saved notes were retained so you can inspect them; no unrelated notes were deleted.
+Disable/uninstall Voicenotes Controls in Raycast Settings → Extensions. Development
+files, if retained, are under `~/.config/raycast/extensions/voicenotes-local`.
+The optional lock is under `~/Library/Application Support/Voicenotes Raycast Local`.
+Removing the extension does not remove Voicenotes recordings.
+
+## Attribution
+
+Based on Parzival's MIT-licensed Voicenotes extension; see [UPSTREAM.md](UPSTREAM.md)
+and [LICENSE](LICENSE). Recording controls and native app automation are maintained
+by Ali Alfredji. This project is not affiliated with Voicenotes or Raycast.

@@ -1,6 +1,9 @@
 import AppKit
 import ApplicationServices
 import Darwin
+#if RAYCAST_BRIDGE
+import RaycastSwiftMacros
+#endif
 
 enum State: String, CaseIterable { case notRunning = "not-running", idle, recording, paused, finalizing, confirmation = "confirmation-pending", unknown }
 enum Command: String, CaseIterable { case start, stop, cancel }
@@ -54,11 +57,14 @@ func tree(_ root: AXUIElement) -> [AXUIElement] {
 func unique(_ nodes: [AXUIElement]) -> AXUIElement? { nodes.count == 1 ? nodes[0] : nil }
 let bundleID = "com.voicenotes.app"
 let appURL = URL(fileURLWithPath: "/Applications/Voicenotes.app")
-let supportedVersions = ["2.4.2"]
+let supportedVersions = ["2.4.2", "2.4.3"]
 func runningApp() -> NSRunningApplication? { NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first }
 func cancelConfigured() -> Bool {
     // Read only the public shortcut setting, never account/session preferences.
     let defaults = UserDefaults(suiteName: bundleID)
+    // The Swift bridge may serve multiple commands in one process.
+    // Revalidate cross-process preference updates rather than keeping a binding.
+    defaults?.synchronize()
     guard let data = defaults?.data(forKey: "mac_shortcut_settings_v2"),
           let settings = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
           let action = settings.first(where: { $0["action"] as? String == "cancel_recording" }),
@@ -77,7 +83,11 @@ struct Snapshot {
     var expand: AXUIElement?
 }
 func snapshot() -> Snapshot {
-    let version = Bundle(url: appURL)?.infoDictionary?["CFBundleShortVersionString"] as? String
+    // Read the installed plist afresh: Bundle caches could hide an app update
+    // while Raycast's generated Swift bridge process is still alive.
+    let infoData = try? Data(contentsOf: appURL.appendingPathComponent("Contents/Info.plist"))
+    let info = infoData.flatMap { try? PropertyListSerialization.propertyList(from:$0,format:nil) as? [String:Any] }
+    let version = info?["CFBundleShortVersionString"] as? String
     var out = Snapshot(observation: Observation(state: State.unknown.rawValue, appVersion: version))
     guard let app = runningApp() else {
         out.observation.state = State.notRunning.rawValue
@@ -85,7 +95,7 @@ func snapshot() -> Snapshot {
         return out
     }
     guard app.bundleURL?.standardizedFileURL == appURL.standardizedFileURL, version.map(supportedVersions.contains) == true else {
-        out.observation.evidence = ["Unsupported app path or version; validated version: 2.4.2"]
+        out.observation.evidence = ["Unsupported app path or version; supported versions: \(supportedVersions.joined(separator: ", "))"]
         return out
     }
     guard AXIsProcessTrusted() else {
@@ -159,6 +169,12 @@ func waitFor(_ predicate: (Snapshot) -> Bool, seconds: Double) -> Snapshot {
     while !predicate(s) && Date() < deadline { Thread.sleep(forTimeInterval:0.15); s = snapshot() }
     return s
 }
+func startControlsReady(_ s: Snapshot) -> Bool {
+    if s.observation.state == State.idle.rawValue {
+        return s.start != nil || s.back != nil || s.home != nil
+    }
+    return ![State.notRunning.rawValue, State.unknown.rawValue].contains(s.observation.state)
+}
 func withLock<T>(_ operation: () throws -> T) throws -> T {
     let folder = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Voicenotes Raycast Local")
     try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
@@ -184,9 +200,12 @@ func execute(_ command: Command) throws -> Result {
         var state = State(rawValue:s.observation.state) ?? .unknown
         if decide(command,state) == .launch {
             guard FileManager.default.fileExists(atPath:appURL.path) else { throw Failure(message:"Install the official Voicenotes app in /Applications first.") }
-            let open = Process(); open.executableURL = URL(fileURLWithPath:"/usr/bin/open"); open.arguments = ["-g",appURL.path]
+            let open = Process(); open.executableURL = URL(fileURLWithPath:"/usr/bin/open"); open.arguments = [appURL.path]
             try open.run(); open.waitUntilExit()
-            s = waitFor({ $0.observation.state != State.notRunning.rawValue && $0.observation.state != State.unknown.rawValue },seconds:5)
+            guard open.terminationStatus == 0 else { throw Failure(message:"macOS could not open Voicenotes. Open it manually, then retry Start.") }
+            // A process/menu can exist before its controls are ready. Wait for
+            // observable controls, then continue this same command exactly once.
+            s = waitFor(startControlsReady,seconds:12)
             state = State(rawValue:s.observation.state) ?? .unknown
         }
         switch decide(command,state) {
@@ -202,9 +221,21 @@ func execute(_ command: Command) throws -> Result {
         case .dispatch: break
         }
         if command == .start {
-            if s.start == nil, let open=s.openMenu { try press(open); s = snapshot() }
-            if s.start == nil, let back=s.back { try press(back); s = snapshot() }
-            if s.start == nil, let home=s.home { try press(home); s = snapshot() }
+            if s.start == nil, let open=s.openMenu {
+                try press(open)
+                s = waitFor({ $0.start != nil || $0.back != nil || $0.home != nil || $0.observation.state != State.idle.rawValue },seconds:2)
+            }
+            if s.start == nil, let back=s.back {
+                try press(back)
+                s = waitFor({ $0.start != nil || $0.home != nil || $0.observation.state != State.idle.rawValue },seconds:3)
+            }
+            if s.start == nil, let home=s.home {
+                try press(home)
+                s = waitFor({ $0.start != nil || $0.observation.state != State.idle.rawValue },seconds:3)
+            }
+            if [State.recording.rawValue,State.paused.rawValue].contains(s.observation.state) {
+                return Result(ok:true,message:"Already recording; capture continues",observation:s.observation)
+            }
             guard s.observation.state == State.idle.rawValue, let start=s.start else {
                 return Result(ok:false,message:"Start control unavailable. Open Voicenotes, sign in, and go to Home; then check Recording Setup and Status.",observation:s.observation)
             }
@@ -271,6 +302,10 @@ func execute(_ command: Command) throws -> Result {
     }
 }
 func selfTest() {
+    let idleWithoutControls = Snapshot(observation: Observation(state: State.idle.rawValue))
+    guard !startControlsReady(idleWithoutControls), !startControlsReady(Snapshot(observation: Observation(state: State.notRunning.rawValue))) else {
+        fatalError("Cold start proceeded before controls were ready")
+    }
     var state: State = .idle
     var actions: [Command] = []
     for command: Command in [.start,.start,.stop,.stop,.cancel,.start,.cancel,.cancel] {
@@ -291,17 +326,25 @@ func selfTest() {
     print("PASS: repeated-command scenario, uncertain/busy guards, startup and paused-session invariants")
 }
 
-let argument = CommandLine.arguments.dropFirst().first ?? "status"
-if argument == "--self-test" { selfTest(); exit(0) }
+func runCommand(_ argument: String) -> String {
 let result: Result
 do {
     if argument == "status" { result = Result(ok:true,message:"Voicenotes recording diagnostics",observation:snapshot().observation) }
     else if argument == "request-accessibility" {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String:true] as CFDictionary
+        // Apple's exported constant is imported as a mutable C global under
+        // Swift 6. Its public CFString value is immutable and documented.
+        let options = ["AXTrustedCheckOptionPrompt":true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
         result = Result(ok:true,message:"Grant Accessibility permission, then refresh status",observation:snapshot().observation)
     } else if let command=Command(rawValue:argument) { result = try execute(command) }
     else { throw Failure(message:"Unknown command") }
 } catch { result = Result(ok:false,message:(error as? Failure)?.message ?? error.localizedDescription,observation:snapshot().observation) }
-let data = try JSONEncoder().encode(result)
-print(String(data:data,encoding:.utf8)!)
+let data = try! JSONEncoder().encode(result)
+return String(data:data,encoding:.utf8)!
+}
+
+#if RAYCAST_BRIDGE
+@raycast func control(command: String) -> String {
+    runCommand(command)
+}
+#endif

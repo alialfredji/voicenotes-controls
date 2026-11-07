@@ -79,7 +79,7 @@ itself validate the complete hidden/minimized acceptance case.
 
 ## Sources
 
-- [Original implementation plan](../../raycast-voicenotes-integration-plan.md)
+- The original workspace plan defined the safety gate; it is not required to install this package.
 - [Voicenotes Mac guide](https://help.voicenotes.com/en/articles/11161004-how-to-use-voicenotes-on-mac): documents a shared Start/Stop shortcut and Cancel shortcut; does not establish atomic separate actions.
 - [Raycast setup](https://developers.raycast.com/basics/getting-started): Node 22.14+ and local extension-development prerequisites.
 
