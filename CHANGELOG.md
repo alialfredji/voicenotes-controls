@@ -1,9 +1,9 @@
-## Unreleased
+# Voicenotes Controls Changelog
+
+## [0.2.0] - 2026-11-12
 
 - Add Open Dictations, Open Meetings, Copy Latest Dictation, Search Notes, and Ask AI.
 - Validate Voicenotes 2.4.4 and restore the Home recording bar after Ask AI.
-
-# Voicenotes Controls Changelog
 
 ## [0.1.0] - 2026-11-07
 

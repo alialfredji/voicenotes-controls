@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const releaseName = "voicenotes-controls-0.1.0";
+const releaseName = "voicenotes-controls-0.2.0";
 const release = path.join(root, "releases", releaseName);
 const manifest = JSON.parse(
   await readFile(path.join(root, "package.json"), "utf8"),
@@ -15,10 +15,12 @@ const built = JSON.parse(
 );
 if (
   built.author !== manifest.author ||
-  built.commands.length !== 4 ||
-  built.commands.some((c) => c.preferences || c.name === "search-notes")
+  built.description !== manifest.description ||
+  JSON.stringify(built.commands) !== JSON.stringify(manifest.commands)
 ) {
-  throw new Error("Rebuild the recording-only distribution before packaging.");
+  throw new Error(
+    "Rebuild the distribution from the current manifest before packaging.",
+  );
 }
 const screenshots = (await readdir(path.join(root, "metadata"))).filter(
   (name) => name.endsWith(".png"),
@@ -191,7 +193,8 @@ const metadata = {
     author: manifest.author,
     commands: manifest.commands.map((c) => c.name),
   },
-  validatedVoicenotesVersions: ["2.4.2", "2.4.3"],
+  validatedVoicenotesVersions: ["2.4.2", "2.4.3", "2.4.4"],
+  navigationVoicenotesVersions: ["2.4.4"],
   raycastApi: manifest.dependencies["@raycast/api"],
   nativeBinaries,
   installation: {
@@ -201,7 +204,7 @@ const metadata = {
       "macOS 14+",
       "Raycast",
       "Node.js 22.22.2+ and npm",
-      "Voicenotes 2.4.2 or 2.4.3",
+      "Voicenotes 2.4.4 for all commands (2.4.2/2.4.3 for recording only)",
     ],
     requiresXcode: false,
     rayext: "Public Raycast 2.11.1 rejects bundles: internal builds only",

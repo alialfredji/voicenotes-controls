@@ -21,11 +21,11 @@ Requires macOS **14+**, [Raycast](https://www.raycast.com/), Voicenotes
 **2.4.2, 2.4.3, or 2.4.4**, and [Node.js](https://nodejs.org/) **22.22.2+** with npm.
 **Xcode is not required** when using the release download.
 
-1. Download **voicenotes-controls-0.1.0-macos.zip** from [Releases](https://github.com/alialfredji/voicenotes-controls/releases/latest) and unzip it.
+1. Download **voicenotes-controls-0.2.0-macos.zip** from [Releases](https://github.com/alialfredji/voicenotes-controls/releases/latest) and unzip it.
 2. Open Terminal and run:
 
    ```sh
-   cd ~/Downloads/voicenotes-controls-0.1.0
+   cd ~/Downloads/voicenotes-controls-0.2.0
    bash install.sh
    ```
 
@@ -43,8 +43,8 @@ submits once in a new chat. Unsent prompts are preserved. Copy reads the first
 entry in the app's newest-first Dictation list; an empty or unrecognized list
 leaves the clipboard unchanged.
 
-The five new actions are currently available from source using `npm run install:local`;
-the v0.1.0 release download contains only the recording commands.
+The latest release includes all nine commands. To update an existing installation,
+download the latest macOS ZIP and run its installer again.
 
 ## Planned
 

@@ -1,6 +1,6 @@
 # Navigation and AI additions — 12 November 2026
 
-Development branch: `feat/navigation-search-ask`. The release download remains v0.1.0.
+Released in v0.2.0 with all nine commands and a prebuilt macOS installer.
 
 - Installed official app: `com.voicenotes.app`, 2.4.4 (107). REA plist evidence:
   `ev_604ece7366c1ede6e38861d5218b1c1bfd75fc64debd72148646af7dd20ce506`.
