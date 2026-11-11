@@ -4,27 +4,15 @@ The shipping release controls recording. Legacy API search is archived in
 `legacy/` and is not exposed as a command. It reported “Failed to fetch recordings”
 on Ali's account. No token setup is required by this release.
 
-## Native text search and listing
+## Native navigation, search, and Ask AI
 
-- [ ] Inspect the existing Voicenotes app's native Search control and result states.
-- [ ] Add a Raycast command accepting a text query: open Voicenotes, wait for its
-      search controls, place the query in the verified field, and run native search.
-- [ ] With no query, open the app's note list so users can browse all notes.
-- [ ] Verify title/transcript matching and filtering behavior before promising it.
-- [ ] Keep active recordings and native confirmations intact; never type into a
-      previously focused app or guess undocumented URL actions.
-- [ ] Reuse the app's existing authenticated session through its UI. Do not extract
-      its sessions, require an Obsidian token, or add an external search backend.
-
-## Native Ask AI
-
-- [ ] Inspect “Ask anything” / “Ask AI” controls and their actual submit action.
-- [ ] Add a separate Raycast command accepting a question, opening the app, waiting
-      for the correct chat field, entering that question, and submitting once.
-- [ ] Decide and document whether the command opens chat or submits immediately;
-      an empty question should open chat without inventing or submitting content.
-- [ ] Verify the entered question and response in the existing app, including
-      hidden windows and an already active recording.
+- [x] Open Dictations and Meetings using semantic Accessibility controls.
+- [x] Copy the full text of the newest dictation without an API token.
+- [x] Search Notes accepts a query and opens native results.
+- [x] Ask AI accepts a prompt, opens a new chat, submits once, and verifies the message.
+- [x] Verify native search results and an AI response on Voicenotes 2.4.4.
+- [ ] Validate offline, empty-account, non-English UI, and active-recording navigation on a separate account.
+- [ ] Validate these navigation controls on versions other than 2.4.4.
 
 ## Wider compatibility
 

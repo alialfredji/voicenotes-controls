@@ -1,3 +1,39 @@
+# Navigation and AI additions — 12 November 2026
+
+Development branch: `feat/navigation-search-ask`. The release download remains v0.1.0.
+
+- Installed official app: `com.voicenotes.app`, 2.4.4 (107). REA plist evidence:
+  `ev_604ece7366c1ede6e38861d5218b1c1bfd75fc64debd72148646af7dd20ce506`.
+  Its plist registers `voicenotes:` but does not document navigation URL paths;
+  this implementation uses observed Accessibility controls instead of guessing URLs.
+- Native live checks opened Dictation and Meetings, copied full dictation text,
+  and entered a search query. Rendered results included matching titles/transcripts.
+- Ask AI: setting the field and performing AXConfirm did not submit. The verified
+  Up button (`arrow.up`) submits; the helper then checks for the exact prompt in chat.
+  Live AI responses were observed. Responses themselves may take longer than submission.
+- Start after Ask AI now closes only the verified chat panel. Start and a subsequent
+  Stop returned recording and idle observations on 2.4.4. Near-immediate Stop once
+  returned uncertainty while recording continued; a fresh status and Stop ended it.
+  No automatic action replay was added. The test created a short “New note”.
+- Navigation is serialized with recording commands, preserves pending dialogs and
+  unsent prompts, and uses app-scoped text fields without clipboard pasting.
+- New navigation actions are gated to 2.4.4. English control labels, newest-first
+  dictation list order, and full AX transcript text are version-specific assumptions.
+- Empty-list parsing and recording state-machine invariants have standalone checks.
+  Physical Intel, offline, empty-account and navigation during capture are untested.
+
+- Final local install, TypeScript check, and Raycast lint passed. The actual Raycast
+  Open Meetings command opened the Meetings page. Ask AI invoked through Raycast
+  displayed the exact submitted prompt and an AI reply.
+- A manual history-scroll stress probe made Voicenotes unresponsive (high CPU);
+  the app was restarted after confirming the test recording had ended. Copy Latest
+  Dictation passed again in the fresh session. Navigation has a 45-second UI timeout
+  with no automatic replay. Deep-history scrolling remains an app-side uncertainty.
+
+The following sections are historical validation records.
+
+---
+
 ## Current Swift-bridge checks on Voicenotes 2.4.3
 
 - The app updated from 2.4.2 to 2.4.3 during packaging; the allowlist initially

@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "voicenotes-local",
   "title": "Voicenotes Controls",
-  "description": "Start, finish, and cancel recordings in the Voicenotes Mac app.",
+  "description": "Record, navigate, search, and ask AI in the Voicenotes Mac app.",
   "icon": "command-icon.png",
   "author": "alialfredji",
   "categories": [
@@ -53,6 +53,72 @@
         "voicenotes",
         "record",
         "vn"
+      ]
+    },
+    {
+      "name": "open-dictations",
+      "title": "Open Dictations",
+      "description": "Open the Dictation section in Voicenotes",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "vn"
+      ]
+    },
+    {
+      "name": "open-meetings",
+      "title": "Open Meetings",
+      "description": "Open the Meetings section in Voicenotes",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "vn"
+      ]
+    },
+    {
+      "name": "copy-latest-dictation",
+      "title": "Copy Latest Dictation",
+      "description": "Copy the newest dictation to the clipboard",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "vn"
+      ]
+    },
+    {
+      "name": "search-notes",
+      "title": "Search Notes",
+      "description": "Search your notes in Voicenotes",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "vn"
+      ],
+      "arguments": [
+        {
+          "name": "input",
+          "type": "text",
+          "placeholder": "Search query",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "ask-ai",
+      "title": "Ask AI",
+      "description": "Send a prompt to Voicenotes AI in a new chat",
+      "mode": "no-view",
+      "keywords": [
+        "voicenotes",
+        "vn"
+      ],
+      "arguments": [
+        {
+          "name": "input",
+          "type": "text",
+          "placeholder": "Prompt",
+          "required": true
+        }
       ]
     }
   ],

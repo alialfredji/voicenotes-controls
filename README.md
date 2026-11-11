@@ -1,6 +1,6 @@
 # Voicenotes Controls
 
-An unofficial Raycast extension to control recording in the Voicenotes Mac app.
+An unofficial Raycast extension for recording, navigation, search, and Ask AI in the Voicenotes Mac app.
 No API token needed.
 
 ## Commands
@@ -8,12 +8,17 @@ No API token needed.
 - **Start Recording** — opens Voicenotes and starts recording.
 - **Stop and Save Recording** — stops recording for saving and transcription.
 - **Cancel Recording** — cancels recording, keeping Voicenotes’ discard confirmation.
+- **Open Dictations** — opens your dictation history.
+- **Open Meetings** — opens your meetings.
+- **Copy Latest Dictation** — copies the newest dictation's full text.
+- **Search Notes** — enter a query to open native search results.
+- **Ask AI** — enter a prompt to submit it in a new Voicenotes chat.
 - **Recording Setup and Status** — checks compatibility, permissions, and recording state.
 
 ## Install
 
 Requires macOS **14+**, [Raycast](https://www.raycast.com/), Voicenotes
-**2.4.2 or 2.4.3**, and [Node.js](https://nodejs.org/) **22.22.2+** with npm.
+**2.4.2, 2.4.3, or 2.4.4**, and [Node.js](https://nodejs.org/) **22.22.2+** with npm.
 **Xcode is not required** when using the release download.
 
 1. Download **voicenotes-controls-0.1.0-macos.zip** from [Releases](https://github.com/alialfredji/voicenotes-controls/releases/latest) and unzip it.
@@ -32,10 +37,17 @@ The installer includes native builds for Apple Silicon and Intel. Other
 Voicenotes versions are blocked until validated. Not yet available in the
 Raycast Store; updates require downloading and installing a new release.
 
+Navigation, copying, search, and Ask AI require **Voicenotes 2.4.4** and its English UI.
+They use the app's signed-in session. Search runs as the query is entered; Ask AI
+submits once in a new chat. Unsent prompts are preserved. Copy reads the first
+entry in the app's newest-first Dictation list; an empty or unrecognized list
+leaves the clipboard unchanged.
+
+The five new actions are currently available from source using `npm run install:local`;
+the v0.1.0 release download contains only the recording commands.
+
 ## Planned
 
-- Native note search and listing.
-- Ask AI through the Voicenotes app.
 - Wider app-version and Cancel shortcut support.
 
 See [TODO.md](TODO.md) for the remaining integrations and compatibility checks.

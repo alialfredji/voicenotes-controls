@@ -57,7 +57,7 @@ func tree(_ root: AXUIElement) -> [AXUIElement] {
 func unique(_ nodes: [AXUIElement]) -> AXUIElement? { nodes.count == 1 ? nodes[0] : nil }
 let bundleID = "com.voicenotes.app"
 let appURL = URL(fileURLWithPath: "/Applications/Voicenotes.app")
-let supportedVersions = ["2.4.2", "2.4.3"]
+let supportedVersions = ["2.4.2", "2.4.3", "2.4.4"]
 func runningApp() -> NSRunningApplication? { NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first }
 func cancelConfigured() -> Bool {
     // Read only the public shortcut setting, never account/session preferences.
@@ -233,6 +233,13 @@ func execute(_ command: Command) throws -> Result {
                 try press(home)
                 s = waitFor({ $0.start != nil || $0.observation.state != State.idle.rawValue },seconds:3)
             }
+            // Ask AI replaces the Home capture bar. Close only that verified
+            // chat panel so recording remains usable after an Ask command.
+            if s.start == nil, field(mainNodes(),"Ask anything") != nil,
+               let close = button(mainNodes(),"Close"), text(close,"AXIdentifier") == "xmark" {
+                try press(close)
+                s = waitFor({ $0.start != nil || $0.observation.state != State.idle.rawValue },seconds:3)
+            }
             if [State.recording.rawValue,State.paused.rawValue].contains(s.observation.state) {
                 return Result(ok:true,message:"Already recording; capture continues",observation:s.observation)
             }
@@ -302,6 +309,11 @@ func execute(_ command: Command) throws -> Result {
     }
 }
 func selfTest() {
+    guard dictationTranscript(["Dictation","20 words","Today","11:57 PM","Full transcript\nwith two lines","11:55 PM","Older"]) == "Full transcript\nwith two lines",
+          dictationTranscript(["Dictation","Yesterday","23:59","Newest"]) == "Newest",
+          dictationTranscript(["Dictation","Today"]) == nil,
+          dictationTranscript(["Dictation","11:57 PM", " "]) == nil,
+          dictationTranscript(["Dictation","11:57 PM"]) == nil else { fatalError("Dictation list parsing failed") }
     let idleWithoutControls = Snapshot(observation: Observation(state: State.idle.rawValue))
     guard !startControlsReady(idleWithoutControls), !startControlsReady(Snapshot(observation: Observation(state: State.notRunning.rawValue))) else {
         fatalError("Cold start proceeded before controls were ready")
@@ -326,10 +338,166 @@ func selfTest() {
     print("PASS: repeated-command scenario, uncertain/busy guards, startup and paused-session invariants")
 }
 
+// Navigation is validated independently of the recording state machine.
+// Do not broaden recording compatibility based on a navigation-only check.
+struct NavigationRequest: Codable { var action: String; var input: String }
+let navigationActions = ["dictations", "meetings", "copy-latest-dictation", "search", "ask"]
+func mainNodes() -> [AXUIElement] {
+    guard let app = runningApp() else { return [] }
+    let root = AXUIElementCreateApplication(app.processIdentifier)
+    AXUIElementSetMessagingTimeout(root, 1)
+    let windows = read(root, "AXWindows") as? [AXUIElement] ?? []
+    return windows.first(where: { text($0,"AXIdentifier") == "main" }).map(tree) ?? []
+}
+func awaitNodes(_ predicate: ([AXUIElement]) -> Bool, seconds: Double = 5) throws -> [AXUIElement] {
+    let deadline = Date().addingTimeInterval(seconds)
+    repeat {
+        let nodes = mainNodes()
+        if predicate(nodes) { return nodes }
+        Thread.sleep(forTimeInterval: 0.1)
+    } while Date() < deadline
+    throw Failure(message: "Voicenotes controls did not become ready. Check the app before retrying.")
+}
+func button(_ nodes: [AXUIElement], _ name: String) -> AXUIElement? {
+    unique(nodes.filter { text($0,"AXRole") == "AXButton" && label($0) == name && enabled($0) })
+}
+func field(_ nodes: [AXUIElement], _ placeholder: String) -> AXUIElement? {
+    unique(nodes.filter { text($0,"AXRole") == "AXTextField" && text($0,"AXPlaceholderValue") == placeholder && enabled($0) })
+}
+func setInput(_ field: AXUIElement, _ input: String) throws {
+    guard AXUIElementSetAttributeValue(field, kAXValueAttribute as CFString, input as CFString) == .success,
+          text(field,"AXValue") == input else {
+        throw Failure(message: "Voicenotes did not accept the text. Nothing was submitted.")
+    }
+}
+func latestDictation(_ nodes: [AXUIElement]) -> String? {
+    // In 2.4.4 the dictation list exposes direct static-text siblings in
+    // newest-first order: heading, statistics, day, time, full transcript.
+    let lists = nodes.filter { n in
+        text(n,"AXRole") == "AXOpaqueProviderGroup" && children(n).contains {
+            text($0,"AXRole") == "AXStaticText" && text($0,"AXValue") == "Dictation"
+        }
+    }
+    guard let list = unique(lists) else { return nil }
+    let values = children(list).filter { text($0,"AXRole") == "AXStaticText" }.map { text($0,"AXValue") }
+    return dictationTranscript(values)
+}
+func dictationTranscript(_ values: [String]) -> String? {
+    guard let index = values.firstIndex(where: { $0.range(of: "^\\d{1,2}:\\d{2}(?:[\\s\\u{00a0}\\u{202f}]*[AP]M)?$", options: .regularExpression) != nil }),
+          index + 1 < values.count else { return nil }
+    let transcript = values[index + 1]
+    return transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : transcript
+}
+func executeNavigation(_ request: NavigationRequest) throws -> Result {
+    guard navigationActions.contains(request.action) else { throw Failure(message:"Unknown navigation command") }
+    let input = request.input.trimmingCharacters(in: .whitespacesAndNewlines)
+    if ["search", "ask"].contains(request.action) && input.isEmpty {
+        throw Failure(message: request.action == "ask" ? "Enter a prompt for Ask AI." : "Enter a search query.")
+    }
+    return try withLock {
+        let data = try Data(contentsOf: appURL.appendingPathComponent("Contents/Info.plist"))
+        let info = try PropertyListSerialization.propertyList(from:data,format:nil) as? [String:Any]
+        guard info?["CFBundleIdentifier"] as? String == bundleID,
+              info?["CFBundleShortVersionString"] as? String == "2.4.4" else {
+            throw Failure(message:"Navigation requires the validated Voicenotes 2.4.4 app in /Applications.")
+        }
+        guard AXIsProcessTrusted() else { throw Failure(message:"Grant Accessibility access in Recording Setup and Status, then retry.") }
+        if runningApp() == nil {
+            let process = Process(); process.executableURL = URL(fileURLWithPath:"/usr/bin/open"); process.arguments = [appURL.path]
+            try process.run(); process.waitUntilExit()
+            guard process.terminationStatus == 0 else { throw Failure(message:"Could not open Voicenotes.") }
+        }
+        if mainNodes().isEmpty, let open = snapshot().openMenu { try press(open) }
+        _ = try awaitNodes({ !$0.isEmpty }, seconds:12)
+        guard let app = runningApp(), app.bundleURL?.standardizedFileURL == appURL.standardizedFileURL else {
+            throw Failure(message:"The running Voicenotes app is not the expected installation.")
+        }
+        guard snapshot().confirmation == nil else { throw Failure(message:"Complete the pending decision in Voicenotes before navigating.") }
+        app.activate(options:[])
+        func go(_ name: String) throws {
+            var nodes = mainNodes()
+            if button(nodes,name) == nil, let open = snapshot().openMenu { try press(open); nodes = mainNodes() }
+            if button(nodes,name) == nil, let back = button(nodes,"Back") {
+                try press(back)
+                nodes = try awaitNodes { button($0,name) != nil || button($0,"Show Sidebar") != nil }
+            }
+            if button(nodes,name) == nil, let sidebar = button(nodes,"Show Sidebar") { try press(sidebar); nodes = mainNodes() }
+            guard let target = button(nodes,name) else { throw Failure(message:"Open the Voicenotes main window and sidebar, then retry. Missing control: \(name).") }
+            try press(target)
+        }
+        var message = ""
+        switch request.action {
+        case "dictations", "copy-latest-dictation":
+            try go("Dictation")
+            let nodes = try awaitNodes { nodes in nodes.contains { text($0,"AXRole") == "AXStaticText" && text($0,"AXValue") == "Dictation" } }
+            if request.action == "copy-latest-dictation" {
+                if let list = unique(nodes.filter { n in
+                    text(n,"AXRole") == "AXOpaqueProviderGroup" && children(n).contains { text($0,"AXValue") == "Dictation" }
+                }) {
+                    var actions: CFArray?
+                    AXUIElementCopyActionNames(list,&actions)
+                    if (actions as? [String] ?? []).contains("AXScrollToTop") {
+                        guard AXUIElementPerformAction(list,"AXScrollToTop" as CFString) == .success else {
+                            throw Failure(message:"Could not reach the newest dictation. Clipboard unchanged.")
+                        }
+                    }
+                }
+                // Wait for asynchronous list loading before declaring it empty.
+                let loaded: [AXUIElement]
+                do { loaded = try awaitNodes { latestDictation($0) != nil } }
+                catch { throw Failure(message:"No dictation is available to copy, or the list could not be read. Clipboard unchanged.") }
+                guard let transcript = latestDictation(loaded) else { throw Failure(message:"No dictation is available to copy.") }
+                NSPasteboard.general.clearContents()
+                guard NSPasteboard.general.setString(transcript, forType:.string) else { throw Failure(message:"Could not write to the clipboard.") }
+                message = "Latest dictation copied"
+            } else { _ = nodes; message = "Opened Dictations" }
+        case "meetings":
+            try go("Meetings")
+            _ = try awaitNodes { nodes in nodes.contains { text($0,"AXRole") == "AXStaticText" && text($0,"AXValue") == "Meetings" } }
+            message = "Opened Meetings"
+        case "search":
+            try go("Search")
+            let nodes = try awaitNodes { field($0,"Search") != nil }
+            guard let target = field(nodes,"Search") else { throw Failure(message:"Search field unavailable.") }
+            try setInput(target,input)
+            message = "Search opened in Voicenotes"
+        case "ask":
+            try go("Home")
+            var nodes = mainNodes()
+            if field(nodes,"Ask anything") == nil {
+                guard let ask = button(nodes,"Ask anything") else { throw Failure(message:"Ask AI control unavailable.") }
+                try press(ask)
+                nodes = try awaitNodes { field($0,"Ask anything") != nil }
+            }
+            if let draft = field(nodes,"Ask anything"), !text(draft,"AXValue").isEmpty {
+                throw Failure(message:"There is an unsent prompt in Voicenotes. Send or clear it before retrying.")
+            }
+            // A new chat avoids accidentally adding the prompt to an existing conversation.
+            if let compose = button(nodes,"Compose") { try press(compose); nodes = try awaitNodes { button($0,"New chat") != nil } }
+            guard let target = field(nodes,"Ask anything") else { throw Failure(message:"Ask AI prompt field unavailable.") }
+            guard text(target,"AXValue").isEmpty else { throw Failure(message:"There is an unsent prompt in Voicenotes. Send or clear it before retrying.") }
+            try setInput(target,input)
+            let ready = try awaitNodes { button($0,"Up") != nil }
+            guard let send = button(ready,"Up"), text(send,"AXIdentifier") == "arrow.up" else {
+                throw Failure(message:"Prompt entered but Send is unavailable. Check Voicenotes.")
+            }
+            try press(send)
+            do {
+                _ = try awaitNodes({ nodes in nodes.contains { text($0,"AXRole") == "AXTextArea" && text($0,"AXValue") == input } })
+            } catch { throw Failure(message:"Prompt entered, but submission could not be verified. Check Voicenotes before retrying.") }
+            message = "Prompt sent to Voicenotes AI"
+        default: throw Failure(message:"Unknown navigation command")
+        }
+        return Result(ok:true,message:message,observation:Observation(state:"navigation",appVersion:"2.4.4"),dispatched:true)
+    }
+}
+
 func runCommand(_ argument: String) -> String {
 let result: Result
 do {
-    if argument == "status" { result = Result(ok:true,message:"Voicenotes recording diagnostics",observation:snapshot().observation) }
+    if let data = argument.data(using:.utf8), let request = try? JSONDecoder().decode(NavigationRequest.self,from:data) { result = try executeNavigation(request) }
+    else if navigationActions.contains(argument) { result = try executeNavigation(NavigationRequest(action:argument,input:"")) }
+    else if argument == "status" { result = Result(ok:true,message:"Voicenotes recording diagnostics",observation:snapshot().observation) }
     else if argument == "request-accessibility" {
         // Apple's exported constant is imported as a mutable C global under
         // Swift 6. Its public CFString value is immutable and documented.
@@ -344,6 +512,10 @@ return String(data:data,encoding:.utf8)!
 }
 
 #if RAYCAST_BRIDGE
+@raycast func navigate(action: String, input: String) -> String {
+    let data = try! JSONEncoder().encode(NavigationRequest(action:action,input:input))
+    return runCommand(String(data:data,encoding:.utf8)!)
+}
 @raycast func control(command: String) -> String {
     runCommand(command)
 }
